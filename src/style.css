@@ -699,22 +699,30 @@ button { cursor: pointer; font-family: inherit; }
 
 /* ── Map ── */
 .map-section {
-  height: 380px;
+  height: 520px;
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--border-default);
   background: var(--bg-panel);
 }
 
-@media (max-width: 640px) {
-  .map-section { height: 280px; }
+@media (min-width: 1200px) {
+  .map-section { height: 600px; }
+}
+@media (max-width: 768px) {
+  .map-section { height: 360px; }
+}
+
+#nem-map {
+  width: 100%;
+  height: 100%;
 }
 
 .map-section .leaflet-container {
   background: var(--bg-panel);
 }
 
-/* Leaflet tooltip */
+/* Leaflet tooltip — rich version */
 .map-tooltip {
   background: var(--bg-elevated) !important;
   border: 1px solid var(--border-strong) !important;
@@ -722,12 +730,53 @@ button { cursor: pointer; font-family: inherit; }
   color: var(--text-secondary) !important;
   font-family: var(--font-sans) !important;
   font-size: var(--font-size-sm) !important;
-  padding: var(--space-sm) var(--space-md) !important;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.5) !important;
+  padding: 0 !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.6) !important;
   line-height: 1.5 !important;
+  min-width: 180px;
 }
-.map-tooltip::before {
-  border-top-color: var(--border-strong) !important;
+.map-tooltip .leaflet-tooltip-content { padding: 0; }
+.map-tooltip::before { border-top-color: var(--border-strong) !important; }
+
+.map-tooltip-dim {
+  min-width: auto !important;
+  padding: var(--space-sm) var(--space-md) !important;
+  opacity: 0.8 !important;
+}
+
+.map-tip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 2px solid var(--border-default);
+  gap: var(--space-lg);
+}
+.map-tip-name {
+  font-weight: 700;
+  color: var(--text-primary);
+  font-size: var(--font-size-base);
+}
+.map-tip-price {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: var(--font-size-lg);
+}
+.map-tip-stats {
+  padding: var(--space-sm) var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.map-tip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-xl);
+  font-size: var(--font-size-xs);
+}
+.map-tip-row span:last-child {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
 }
 
 /* Price marker labels on map */
@@ -741,19 +790,43 @@ button { cursor: pointer; font-family: inherit; }
   flex-direction: column;
   align-items: center;
   gap: 1px;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.7);
+  text-shadow:
+    0 1px 3px rgba(0,0,0,0.95),
+    0 0 6px rgba(0,0,0,0.8),
+    0 0 12px rgba(5,8,15,0.9);
 }
 
 .map-marker-name {
   font-family: var(--font-sans);
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--text-primary);
+  letter-spacing: 0.03em;
 }
 
 .map-marker-price {
   font-family: var(--font-mono);
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 700;
   letter-spacing: -0.02em;
+}
+
+/* Interconnector flow animation */
+.flow-animated {
+  animation: flow-dash 1.2s linear infinite;
+}
+@keyframes flow-dash {
+  to { stroke-dashoffset: -14; }
+}
+
+.map-flow-label {
+  background: none !important;
+  border: none !important;
+}
+.map-flow-label span {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-tertiary);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.9);
+  white-space: nowrap;
 }
