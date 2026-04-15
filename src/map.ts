@@ -13,27 +13,26 @@ import { AU_GEOJSON } from './geo.js';
 
 // ── Colour mapping ──────────────────────────────────────────────────────────
 
-// Subtle, muted fills — let the price labels carry the colour intensity
+// Subtle muted fills — states are background, labels carry emphasis
 const PRICE_BAND_FILLS: Record<string, string> = {
-  'price-negative': '#2e1f5e',
-  'price-cheap': '#0f3022',
-  'price-normal': '#0c2a35',
-  'price-high': '#2e2510',
-  'price-very-high': '#2e1a0c',
-  'price-cap': '#2e0c0c',
+  'price-negative': '#1e163d',
+  'price-cheap': '#0c2218',
+  'price-normal': '#0a1e28',
+  'price-high': '#221c0c',
+  'price-very-high': '#22140a',
+  'price-cap': '#220a0a',
 };
 
-// Borders slightly brighter than fills, but still muted
 const PRICE_BAND_BORDERS: Record<string, string> = {
-  'price-negative': '#6d5cae',
-  'price-cheap': '#2d7a4a',
-  'price-normal': '#1a6070',
-  'price-high': '#8a7530',
-  'price-very-high': '#8a4a1a',
-  'price-cap': '#8a2020',
+  'price-negative': '#4a3d8a',
+  'price-cheap': '#1d5a35',
+  'price-normal': '#15455a',
+  'price-high': '#6a5820',
+  'price-very-high': '#6a3515',
+  'price-cap': '#6a1818',
 };
 
-// Label colours — these are bright and carry the visual emphasis
+// Bright label colours
 const PRICE_BAND_LABEL_COLORS: Record<string, string> = {
   'price-negative': '#a78bfa',
   'price-cheap': '#4ade80',
@@ -43,8 +42,12 @@ const PRICE_BAND_LABEL_COLORS: Record<string, string> = {
   'price-cap': '#ef4444',
 };
 
-const NON_NEM_FILL = '#0e1520';
-const NON_NEM_BORDER = '#1c2840';
+const NON_NEM_FILL = '#0a0f18';
+const NON_NEM_BORDER = '#182030';
+
+// ── Flow line colour — GREEN to contrast blue states ────────────────────────
+const FLOW_COLOR = '#22c55e';
+const FLOW_GLOW = '#16a34a';
 
 // ── Interconnector definitions ──────────────────────────────────────────────
 
@@ -83,16 +86,16 @@ const INTERCONNECTORS: InterconnectorDef[] = [
     from: 'VIC1',
     to: 'SA1',
     fromCoord: [-37, 142],
-    toCoord: [-35, 140],
+    toCoord: [-35, 139.5],
     matchNames: ['V-SA', 'V-S-MNSP1'],
   },
   {
     id: 'vic-tas',
-    label: 'VIC ↔ TAS',
+    label: 'VIC ↔ TAS (Basslink)',
     from: 'VIC1',
     to: 'TAS1',
-    fromCoord: [-38.8, 146],
-    toCoord: [-41, 146],
+    fromCoord: [-38.8, 146.5],
+    toCoord: [-41, 146.5],
     matchNames: ['T-V-MNSP1'],
   },
 ];
@@ -126,18 +129,20 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
     const mapEl = container.querySelector('#nem-map') as HTMLElement;
 
     map = L.map(mapEl, {
-      zoomControl: false,
+      zoomControl: true,
       attributionControl: false,
-      dragging: false,
-      scrollWheelZoom: false,
-      doubleClickZoom: false,
-      boxZoom: false,
-      keyboard: false,
-      touchZoom: false,
+      dragging: true,
+      scrollWheelZoom: true,
+      doubleClickZoom: true,
+      boxZoom: true,
+      keyboard: true,
+      touchZoom: true,
+      minZoom: 3,
+      maxZoom: 8,
     });
 
-    // Fit to full Australia — generous bounds to show WA/NT properly
-    map.fitBounds([[-45, 110], [-9, 156]], { padding: [10, 10] });
+    // Fit to Australia
+    map.fitBounds([[-44, 112], [-10, 155]], { padding: [10, 10] });
   }
 
   // ── Clear old layers ────────────────────────────────────────────────────
@@ -167,9 +172,9 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
       const region = regionMap.get(rid as RegionId);
       const bandClass = region ? priceBandClass(region.price) : 'price-normal';
       return {
-        fillColor: PRICE_BAND_FILLS[bandClass] ?? '#0891b2',
-        fillOpacity: 0.75,
-        color: PRICE_BAND_BORDERS[bandClass] ?? '#22d3ee',
+        fillColor: PRICE_BAND_FILLS[bandClass] ?? '#0a1e28',
+        fillOpacity: 0.8,
+        color: PRICE_BAND_BORDERS[bandClass] ?? '#15455a',
         weight: 1.5,
       };
     },
@@ -178,7 +183,6 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
       const isNem = feature.properties?.nem === true;
 
       if (!isNem) {
-        // Non-NEM: dim tooltip
         layer.bindTooltip(
           `<strong>${feature.properties?.name}</strong><br><em>Not in the NEM</em>`,
           { sticky: true, className: 'map-tooltip map-tooltip-dim' }
@@ -207,9 +211,9 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
         { sticky: true, className: 'map-tooltip' }
       );
 
-      // Hover highlight — brighten the fill
+      // Hover — brighten
       layer.on('mouseover', () => {
-        (layer as L.Path).setStyle({ fillOpacity: 0.7, weight: 2 });
+        (layer as L.Path).setStyle({ fillOpacity: 0.95, weight: 2.5 });
       });
       layer.on('mouseout', () => {
         geoLayer?.resetStyle(layer);
@@ -244,59 +248,54 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
     labelMarkers.push(L.marker(center, { icon, interactive: false }).addTo(map));
   }
 
-  // ── Interconnector flow lines ───────────────────────────────────────────
+  // ── Interconnector flow lines (GREEN) ──────────────────────────────────
   for (const ic of INTERCONNECTORS) {
-    // Find total flow for this interconnector group
-    let totalFlow = 0;
-    let flowDirection = 0; // positive = from→to
+    let flowDirection = 0;
     for (const region of regions) {
       for (const flow of region.interconnectors) {
         if (ic.matchNames.includes(flow.name)) {
-          totalFlow += Math.abs(flow.value);
           flowDirection = flow.value;
           break;
         }
       }
+      if (flowDirection !== 0) break;
     }
 
-    // Deduplicate — only count once
     const absMW = Math.abs(flowDirection);
     if (absMW < 1) continue;
 
-    // Determine direction for the arrow
     const coords: L.LatLngExpression[] =
       flowDirection > 0 ? [ic.fromCoord, ic.toCoord] : [ic.toCoord, ic.fromCoord];
 
-    const lineWeight = Math.min(5, 2 + absMW / 200);
+    const lineWeight = Math.min(5, 2 + absMW / 150);
 
-    // Glow layer (wider, semi-transparent underneath)
+    // Glow layer
     const glow = L.polyline(coords, {
-      color: '#22d3ee',
-      weight: lineWeight + 4,
-      opacity: 0.15,
+      color: FLOW_GLOW,
+      weight: lineWeight + 6,
+      opacity: 0.2,
       lineCap: 'round',
     }).addTo(map);
     flowLines.push(glow);
 
-    // Main animated dashed line
+    // Main animated dashed line — GREEN
     const line = L.polyline(coords, {
-      color: '#22d3ee',
+      color: FLOW_COLOR,
       weight: lineWeight,
-      dashArray: '10 8',
-      opacity: 0.8,
+      dashArray: '12 8',
+      opacity: 0.85,
       lineCap: 'round',
       className: 'flow-animated',
     }).addTo(map);
     flowLines.push(line);
 
-    // MW label at midpoint — offset perpendicular to the line
+    // MW label
     const lat1 = (coords[0] as number[])[0];
     const lng1 = (coords[0] as number[])[1];
     const lat2 = (coords[1] as number[])[0];
     const lng2 = (coords[1] as number[])[1];
     const midLat = (lat1 + lat2) / 2;
     const midLng = (lng1 + lng2) / 2;
-    // Offset perpendicular
     const dx = lng2 - lng1;
     const dy = lat2 - lat1;
     const len = Math.sqrt(dx * dx + dy * dy) || 1;
@@ -307,12 +306,14 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
     const labelIcon = L.divIcon({
       className: 'map-flow-label',
       html: `<span>${arrow} ${formatMW(absMW)}</span>`,
-      iconSize: [90, 22],
-      iconAnchor: [45, 11],
+      iconSize: [100, 24],
+      iconAnchor: [50, 12],
     });
-    flowLabels.push(L.marker([offsetLat, offsetLng], { icon: labelIcon, interactive: false }).addTo(map));
+    flowLabels.push(
+      L.marker([offsetLat, offsetLng], { icon: labelIcon, interactive: false }).addTo(map)
+    );
 
-    // Tooltip on the line
+    // Tooltip
     line.bindTooltip(
       `<strong>${ic.label}</strong><br>${formatMW(absMW)} ${flowDirection > 0 ? '→' : '←'}`,
       { sticky: true, className: 'map-tooltip' }
