@@ -22,7 +22,7 @@ export function renderChart(
   const innerH = CHART_HEIGHT - PADDING.top - PADDING.bottom;
 
   if (history.length < 2) {
-    container.innerHTML = `<div class="chart-empty">Price history builds up as you leave the page open. Check back in a few minutes.</div>`;
+    container.innerHTML = `<div class="chart-empty">Loading price history…</div>`;
     return;
   }
 

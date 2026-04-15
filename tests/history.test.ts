@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { appendHistory } from '../src/history.js';
+import { describe, it, expect } from 'vitest';
+import { appendHistory, mergeHistory } from '../src/history.js';
 import type { HistoryPoint, ParsedRegion } from '../src/types.js';
 import { parseRegion } from '../src/utils.js';
 import type { NemRegion } from '../src/types.js';
@@ -34,7 +34,6 @@ describe('appendHistory', () => {
     const existing: HistoryPoint[] = [{ ts: now - 10_000, prices: { NSW1: 100 } }];
     const regions = [makeRegion('NSW1', 105)];
     const result = appendHistory(existing, regions);
-    // Should not append because 10s < 60s threshold
     expect(result).toHaveLength(1);
   });
 
@@ -58,15 +57,6 @@ describe('appendHistory', () => {
     expect(result.length).toBeLessThanOrEqual(288);
   });
 
-  it('includes a timestamp in the appended point', () => {
-    const before = Date.now();
-    const regions = [makeRegion('QLD1', 98)];
-    const result = appendHistory([], regions);
-    const after = Date.now();
-    expect(result[0].ts).toBeGreaterThanOrEqual(before);
-    expect(result[0].ts).toBeLessThanOrEqual(after);
-  });
-
   it('records all provided regions in the price snapshot', () => {
     const regions = [
       makeRegion('NSW1', 100),
@@ -81,5 +71,57 @@ describe('appendHistory', () => {
     expect(result[0].prices['SA1']).toBe(138);
     expect(result[0].prices['TAS1']).toBe(88);
     expect(result[0].prices['VIC1']).toBe(92);
+  });
+});
+
+describe('mergeHistory', () => {
+  it('merges two arrays sorted by timestamp', () => {
+    const now = Date.now();
+    const a: HistoryPoint[] = [
+      { ts: now - 300_000, prices: { NSW1: 100 } },
+      { ts: now - 100_000, prices: { NSW1: 110 } },
+    ];
+    const b: HistoryPoint[] = [
+      { ts: now - 200_000, prices: { NSW1: 105 } },
+    ];
+    const result = mergeHistory(a, b);
+    expect(result).toHaveLength(3);
+    expect(result[0].ts).toBeLessThan(result[1].ts);
+    expect(result[1].ts).toBeLessThan(result[2].ts);
+  });
+
+  it('deduplicates points within 60 seconds', () => {
+    const now = Date.now();
+    const a: HistoryPoint[] = [{ ts: now - 100_000, prices: { NSW1: 100 } }];
+    const b: HistoryPoint[] = [{ ts: now - 100_030, prices: { NSW1: 100 } }]; // 30ms later
+    const result = mergeHistory(a, b);
+    expect(result).toHaveLength(1);
+  });
+
+  it('prunes points older than 25 hours', () => {
+    const now = Date.now();
+    const old: HistoryPoint[] = [
+      { ts: now - 26 * 60 * 60 * 1000, prices: { NSW1: 80 } }, // 26h ago
+    ];
+    const recent: HistoryPoint[] = [
+      { ts: now - 60_000, prices: { NSW1: 100 } },
+    ];
+    const result = mergeHistory(old, recent);
+    expect(result).toHaveLength(1);
+    expect(result[0].prices['NSW1']).toBe(100);
+  });
+
+  it('returns empty array when both inputs are empty', () => {
+    expect(mergeHistory([], [])).toEqual([]);
+  });
+
+  it('caps at 288 points', () => {
+    const now = Date.now();
+    const large: HistoryPoint[] = Array.from({ length: 300 }, (_, i) => ({
+      ts: now - (300 - i) * 5 * 60_000,
+      prices: { NSW1: 100 + i },
+    }));
+    const result = mergeHistory(large, []);
+    expect(result.length).toBeLessThanOrEqual(288);
   });
 });

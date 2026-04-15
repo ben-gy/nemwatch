@@ -43,6 +43,7 @@ export function renderHeader(
           <span class="stat-value">${timeStr}</span>
         </span>
       ` : ''}
+      <button class="about-btn" id="about-btn" title="About NEM Watch">?</button>
       <span class="refresh-badge ${state.loading ? 'loading' : ''}" title="Next refresh in ${state.nextRefreshIn}s">
         ${state.loading ? '<span class="spinner"></span>' : `<span class="countdown">${state.nextRefreshIn}s</span>`}
       </span>
@@ -85,24 +86,24 @@ function renderCard(region: ParsedRegion): string {
 
       <div class="price-display ${bandClass}">
         <span class="price-value">${formatPrice(region.price)}</span>
-        <span class="price-unit">/MWh</span>
+        <span class="price-unit">/MWh <span class="glossary-link" data-term="spot-price">ℹ</span></span>
       </div>
 
       <div class="card-stats">
         <div class="stat-row">
-          <span class="stat-label">Demand</span>
+          <span class="stat-label">Demand <span class="glossary-link" data-term="demand">ℹ</span></span>
           <span class="stat-val mono">${formatMW(region.totalDemand)}</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Generation</span>
+          <span class="stat-label">Generation <span class="glossary-link" data-term="generation">ℹ</span></span>
           <span class="stat-val mono">${formatMW(region.totalGen)}</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Semi-sched</span>
+          <span class="stat-label">Semi-sched <span class="glossary-link" data-term="semi-scheduled">ℹ</span></span>
           <span class="stat-val mono">${formatPct(region.semiScheduledPct)}</span>
         </div>
         <div class="stat-row">
-          <span class="stat-label">Net interchange</span>
+          <span class="stat-label">Net interchange <span class="glossary-link" data-term="net-interchange">ℹ</span></span>
           <span class="stat-val mono ${region.netInterchange > 0 ? 'text-good' : 'text-warn'}">${region.netInterchange > 0 ? '+' : ''}${formatMW(region.netInterchange)}</span>
         </div>
       </div>
@@ -143,7 +144,7 @@ export function renderInterconnectors(
     return;
   }
   el.innerHTML = `
-    <div class="panel-title">Interconnector Flows</div>
+    <div class="panel-title">Interconnector Flows <span class="glossary-link" data-term="interconnector">ℹ</span></div>
     <div class="ic-grid">
       ${ics.map((ic) => {
         const isExport = ic.value > 0;
