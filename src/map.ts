@@ -13,16 +13,28 @@ import { AU_GEOJSON } from './geo.js';
 
 // ── Colour mapping ──────────────────────────────────────────────────────────
 
+// Subtle, muted fills — let the price labels carry the colour intensity
 const PRICE_BAND_FILLS: Record<string, string> = {
-  'price-negative': '#7c3aed',
-  'price-cheap': '#16a34a',
-  'price-normal': '#0891b2',
-  'price-high': '#ca8a04',
-  'price-very-high': '#ea580c',
-  'price-cap': '#dc2626',
+  'price-negative': '#2e1f5e',
+  'price-cheap': '#0f3022',
+  'price-normal': '#0c2a35',
+  'price-high': '#2e2510',
+  'price-very-high': '#2e1a0c',
+  'price-cap': '#2e0c0c',
 };
 
+// Borders slightly brighter than fills, but still muted
 const PRICE_BAND_BORDERS: Record<string, string> = {
+  'price-negative': '#6d5cae',
+  'price-cheap': '#2d7a4a',
+  'price-normal': '#1a6070',
+  'price-high': '#8a7530',
+  'price-very-high': '#8a4a1a',
+  'price-cap': '#8a2020',
+};
+
+// Label colours — these are bright and carry the visual emphasis
+const PRICE_BAND_LABEL_COLORS: Record<string, string> = {
   'price-negative': '#a78bfa',
   'price-cheap': '#4ade80',
   'price-normal': '#22d3ee',
@@ -31,8 +43,8 @@ const PRICE_BAND_BORDERS: Record<string, string> = {
   'price-cap': '#ef4444',
 };
 
-const NON_NEM_FILL = '#111d2e';
-const NON_NEM_BORDER = '#243044';
+const NON_NEM_FILL = '#0e1520';
+const NON_NEM_BORDER = '#1c2840';
 
 // ── Interconnector definitions ──────────────────────────────────────────────
 
@@ -156,7 +168,7 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
       const bandClass = region ? priceBandClass(region.price) : 'price-normal';
       return {
         fillColor: PRICE_BAND_FILLS[bandClass] ?? '#0891b2',
-        fillOpacity: 0.55,
+        fillOpacity: 0.75,
         color: PRICE_BAND_BORDERS[bandClass] ?? '#22d3ee',
         weight: 1.5,
       };
@@ -178,13 +190,13 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
       if (!region) return;
 
       const bandClass = priceBandClass(region.price);
-      const borderColor = PRICE_BAND_BORDERS[bandClass] ?? '#22d3ee';
+      const labelColor = PRICE_BAND_LABEL_COLORS[bandClass] ?? '#22d3ee';
 
       // Rich tooltip on hover
       layer.bindTooltip(
-        `<div class="map-tip-header" style="border-color:${borderColor}">
+        `<div class="map-tip-header" style="border-color:${labelColor}">
           <span class="map-tip-name">${REGION_LABELS[rid as RegionId]}</span>
-          <span class="map-tip-price" style="color:${borderColor}">${formatPrice(region.price)}/MWh</span>
+          <span class="map-tip-price" style="color:${labelColor}">${formatPrice(region.price)}/MWh</span>
         </div>
         <div class="map-tip-stats">
           <div class="map-tip-row"><span>Demand</span><span>${formatMW(region.totalDemand)}</span></div>
@@ -195,9 +207,9 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
         { sticky: true, className: 'map-tooltip' }
       );
 
-      // Hover highlight
+      // Hover highlight — brighten the fill
       layer.on('mouseover', () => {
-        (layer as L.Path).setStyle({ fillOpacity: 0.8, weight: 2.5 });
+        (layer as L.Path).setStyle({ fillOpacity: 0.7, weight: 2 });
       });
       layer.on('mouseout', () => {
         geoLayer?.resetStyle(layer);
@@ -217,7 +229,7 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
     if (!region) continue;
     const center = REGION_CENTERS[rid];
     const bandClass = priceBandClass(region.price);
-    const color = PRICE_BAND_BORDERS[bandClass] ?? '#22d3ee';
+    const color = PRICE_BAND_LABEL_COLORS[bandClass] ?? '#22d3ee';
 
     const icon = L.divIcon({
       className: 'map-price-marker',
@@ -255,29 +267,50 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
     const coords: L.LatLngExpression[] =
       flowDirection > 0 ? [ic.fromCoord, ic.toCoord] : [ic.toCoord, ic.fromCoord];
 
-    // Animated dashed line
+    const lineWeight = Math.min(5, 2 + absMW / 200);
+
+    // Glow layer (wider, semi-transparent underneath)
+    const glow = L.polyline(coords, {
+      color: '#22d3ee',
+      weight: lineWeight + 4,
+      opacity: 0.15,
+      lineCap: 'round',
+    }).addTo(map);
+    flowLines.push(glow);
+
+    // Main animated dashed line
     const line = L.polyline(coords, {
-      color: '#64748b',
-      weight: Math.min(4, 1.5 + absMW / 300),
-      dashArray: '8 6',
-      opacity: 0.7,
+      color: '#22d3ee',
+      weight: lineWeight,
+      dashArray: '10 8',
+      opacity: 0.8,
+      lineCap: 'round',
       className: 'flow-animated',
     }).addTo(map);
     flowLines.push(line);
 
-    // MW label at midpoint
-    const mid = L.latLng(
-      ((coords[0] as number[])[0] + (coords[1] as number[])[0]) / 2,
-      ((coords[0] as number[])[1] + (coords[1] as number[])[1]) / 2
-    );
-    // Offset label to the side so it doesn't overlap the line
+    // MW label at midpoint — offset perpendicular to the line
+    const lat1 = (coords[0] as number[])[0];
+    const lng1 = (coords[0] as number[])[1];
+    const lat2 = (coords[1] as number[])[0];
+    const lng2 = (coords[1] as number[])[1];
+    const midLat = (lat1 + lat2) / 2;
+    const midLng = (lng1 + lng2) / 2;
+    // Offset perpendicular
+    const dx = lng2 - lng1;
+    const dy = lat2 - lat1;
+    const len = Math.sqrt(dx * dx + dy * dy) || 1;
+    const offsetLat = midLat + (dx / len) * 0.8;
+    const offsetLng = midLng - (dy / len) * 0.8;
+
+    const arrow = flowDirection > 0 ? '→' : '←';
     const labelIcon = L.divIcon({
       className: 'map-flow-label',
-      html: `<span>${formatMW(absMW)}</span>`,
-      iconSize: [70, 18],
-      iconAnchor: [35, 9],
+      html: `<span>${arrow} ${formatMW(absMW)}</span>`,
+      iconSize: [90, 22],
+      iconAnchor: [45, 11],
     });
-    flowLabels.push(L.marker([mid.lat + 0.3, mid.lng + 1], { icon: labelIcon, interactive: false }).addTo(map));
+    flowLabels.push(L.marker([offsetLat, offsetLng], { icon: labelIcon, interactive: false }).addTo(map));
 
     // Tooltip on the line
     line.bindTooltip(
