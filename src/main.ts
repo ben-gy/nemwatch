@@ -142,7 +142,7 @@ function mount(): void {
         <span id="last-updated" class="footer-updated"></span>
         <span class="footer-source">
           Data: <a href="https://www.aemo.com.au/" target="_blank" rel="noopener">AEMO</a> ·
-          Built by <a href="https://benrichardson.dev/" target="_blank" rel="noopener">benrichardson.dev</a> · <a href="https://hub.benrichardson.dev" target="_blank" rel="noopener">more tools &amp; sites</a>
+          Built by <a href="https://benrichardson.dev/" target="_blank" rel="noopener">benrichardson.dev</a> · <a href="https://sites.benrichardson.dev" target="_blank" rel="noopener">more tools &amp; sites</a>
         </span>
       </div>
     </footer>
