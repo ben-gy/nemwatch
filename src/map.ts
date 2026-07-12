@@ -9,7 +9,7 @@ import {
   formatMW,
   formatPct,
 } from './utils.js';
-import { AU_GEOJSON } from './geo.js';
+import { loadAuGeojson } from './geo.js';
 
 // ── Colour mapping ──────────────────────────────────────────────────────────
 
@@ -118,8 +118,34 @@ let labelMarkers: L.Marker[] = [];
 let flowLines: L.Polyline[] = [];
 let flowLabels: L.Marker[] = [];
 
+// Real state boundaries load once from public data; re-render when ready
+let auGeo: GeoJSON.FeatureCollection | null = null;
+let geoRequested = false;
+let pendingContainer: HTMLElement | null = null;
+let pendingRegions: ParsedRegion[] | null = null;
+
 export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void {
   if (regions.length === 0) return;
+
+  if (!auGeo) {
+    pendingContainer = container;
+    pendingRegions = regions;
+    if (!geoRequested) {
+      geoRequested = true;
+      loadAuGeojson()
+        .then((geo) => {
+          auGeo = geo;
+          if (pendingContainer && pendingRegions) {
+            renderMap(pendingContainer, pendingRegions);
+          }
+        })
+        .catch((err) => {
+          console.error('Failed to load map boundaries:', err);
+          geoRequested = false; // allow retry on the next render
+        });
+    }
+    return;
+  }
 
   const regionMap = new Map(regions.map((r) => [r.regionId, r]));
 
@@ -155,7 +181,7 @@ export function renderMap(container: HTMLElement, regions: ParsedRegion[]): void
   flowLabels = [];
 
   // ── Render all states ───────────────────────────────────────────────────
-  geoLayer = L.geoJSON(AU_GEOJSON as unknown as GeoJSON.FeatureCollection, {
+  geoLayer = L.geoJSON(auGeo, {
     style: (feature) => {
       const rid = feature?.properties?.id as string;
       const isNem = feature?.properties?.nem === true;

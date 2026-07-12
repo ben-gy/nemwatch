@@ -599,6 +599,25 @@ button { cursor: pointer; font-family: inherit; }
   box-shadow: 0 4px 24px rgba(0,0,0,0.5);
 }
 .tooltip[hidden] { display: none; }
+
+/* Global [data-tip] hover tooltip */
+.hover-tip {
+  position: fixed;
+  z-index: 10000; /* above everything incl. Leaflet panes */
+  max-width: 300px;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: 4px;
+  padding: 0.4rem 0.6rem;
+  font-size: var(--font-size-sm);
+  line-height: 1.4;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 100ms;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+}
+.hover-tip.visible { opacity: 1; }
 .tooltip-term {
   font-weight: 700;
   color: var(--accent-primary);

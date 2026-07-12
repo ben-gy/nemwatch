@@ -71,10 +71,10 @@ function renderCard(region: ParsedRegion): string {
     : 0;
 
   const apcBadge = region.apcFlag
-    ? '<span class="badge badge-warn" title="Administered Price Cap active">APC</span>'
+    ? '<span class="badge badge-warn" data-tip="Administered Price Cap active" aria-label="Administered Price Cap active">APC</span>'
     : '';
   const suspendedBadge = region.marketSuspended
-    ? '<span class="badge badge-bad" title="Market suspended">SUSP</span>'
+    ? '<span class="badge badge-bad" data-tip="Market suspended" aria-label="Market suspended">SUSP</span>'
     : '';
 
   return `
@@ -108,14 +108,14 @@ function renderCard(region: ParsedRegion): string {
         </div>
       </div>
 
-      <div class="gen-bar-container" title="Generation vs demand">
+      <div class="gen-bar-container" data-tip="Generation ${formatMW(region.totalGen)} vs demand ${formatMW(region.totalDemand)} — ${genPct.toFixed(0)}% of demand met by local generation" aria-label="Generation vs demand">
         <div class="gen-bar-track">
           <div class="gen-bar-fill" style="width:${Math.min(100, genPct).toFixed(1)}%"></div>
         </div>
         <span class="gen-bar-label">${genPct.toFixed(0)}% gen/demand</span>
       </div>
 
-      <div class="semi-bar-container" title="Semi-scheduled (wind + large solar) as % of generation">
+      <div class="semi-bar-container" data-tip="Semi-scheduled (wind + large solar): ${formatPct(region.semiScheduledPct)} of generation" aria-label="Semi-scheduled (wind + large solar) as % of generation">
         <div class="semi-bar-track">
           <div class="semi-bar-fill" style="width:${region.semiScheduledPct.toFixed(1)}%"></div>
         </div>
@@ -150,8 +150,9 @@ export function renderInterconnectors(
         const isExport = ic.value > 0;
         const absMW = Math.abs(ic.value);
         const pct = ic.exportlimit > 0 ? Math.min(100, (absMW / ic.exportlimit) * 100) : 0;
+        const tip = `${interconnectorLabel(ic.name)}: ${formatMW(absMW)} ${isExport ? 'export' : 'import'}${ic.exportlimit > 0 ? ` — ${pct.toFixed(0)}% of ${formatMW(ic.exportlimit)} export limit` : ''}`;
         return `
-          <div class="ic-row">
+          <div class="ic-row" data-tip="${tip}">
             <span class="ic-name">${interconnectorLabel(ic.name)}</span>
             <div class="ic-bar-track">
               <div class="ic-bar-fill ${isExport ? 'export' : 'import'}" style="width:${pct.toFixed(1)}%"></div>

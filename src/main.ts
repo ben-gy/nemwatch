@@ -15,6 +15,7 @@ import {
 import { renderChart, renderLegend } from './chart.js';
 import { renderMap } from './map.js';
 import { lookupTerm } from './glossary.js';
+import { initTooltip } from './tooltip.js';
 import './style.css';
 
 const REFRESH_INTERVAL = 5 * 60; // 5 minutes in seconds
@@ -185,6 +186,7 @@ function mount(): void {
   priceLegendEl = document.getElementById('price-legend')!;
 
   renderPriceLegend(priceLegendEl);
+  initTooltip();
 
   // Initial render (shows loading state)
   render();

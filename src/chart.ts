@@ -1,5 +1,5 @@
 import type { HistoryPoint, RegionId } from './types.js';
-import { REGION_ORDER, REGION_LABELS, formatTimeShort } from './utils.js';
+import { REGION_ORDER, REGION_LABELS, formatTimeShort, formatPrice } from './utils.js';
 
 const REGION_COLORS: Record<RegionId, string> = {
   NSW1: '#22d3ee',
@@ -65,8 +65,13 @@ export function renderChart(
     const d = points
       .map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`)
       .join(' ');
+    const prices = history
+      .map((p) => p.prices[rid])
+      .filter((v): v is number => v !== undefined);
+    const tip = `${REGION_LABELS[rid]}: now ${formatPrice(prices[prices.length - 1])}/MWh · 24h range ${formatPrice(Math.min(...prices))} to ${formatPrice(Math.max(...prices))}`;
     paths.push(
-      `<path d="${d}" stroke="${REGION_COLORS[rid]}" stroke-width="1.5" fill="none" opacity="0.85"/>`
+      `<path d="${d}" stroke="${REGION_COLORS[rid]}" stroke-width="1.5" fill="none" opacity="0.85"/>` +
+        `<path d="${d}" stroke="transparent" stroke-width="10" fill="none" pointer-events="stroke" data-tip="${tip}" aria-label="${tip}"/>`
     );
   }
 
