@@ -1,3 +1,8 @@
+// feedback:begin (managed by hub/scripts/feedback/backfill.mjs)
+import { mountFeedback } from './feedback';
+mountFeedback();
+// feedback:end
+
 import type { AppState, RegionId } from './types.js';
 import { fetchNemSummary } from './api.js';
 import { loadHistory, saveHistory, appendHistory } from './history.js';
