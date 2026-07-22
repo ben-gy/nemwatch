@@ -1,3 +1,6 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright (C) 2026 Ben Richardson — https://benrichardson.dev
+// Additional terms under AGPL-3.0 section 7(b) apply; see ADDITIONAL-TERMS.md.
 // Real ABS state boundaries, fetched once from public/data/au-states.geojson
 // and re-keyed to NEM region ids (NSW1, QLD1, SA1, TAS1, VIC1).
 // WA, NT and the ACT are kept for context but flagged nem: false.
